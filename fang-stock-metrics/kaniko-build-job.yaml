@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fang-stock-metrics-build
+  namespace: default
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: stage-context
+          image: busybox
+          command: ["sh", "-c", "cp -rL /configmap/. /workspace/"]
+          volumeMounts:
+            - name: configmap-src
+              mountPath: /configmap
+            - name: build-context
+              mountPath: /workspace
+      containers:
+        - name: kaniko
+          image: gcr.io/kaniko-project/executor:v1.23.2
+          args:
+            - --context=dir:///workspace
+            - --dockerfile=/workspace/Dockerfile
+            - --destination=ttl.sh/bardiyashojaei-fang-stock-metrics:24h
+            - --cache=false
+          volumeMounts:
+            - name: build-context
+              mountPath: /workspace
+      volumes:
+        - name: configmap-src
+          configMap:
+            name: fang-stock-metrics-src
+        - name: build-context
+          emptyDir: {}

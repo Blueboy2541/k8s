@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cpu-stress
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: cpu-stress
+  template:
+    metadata:
+      labels:
+        app: cpu-stress
+    spec:
+      tolerations:
+      - operator: Exists
+      containers:
+      - name: stress
+        image: ghcr.io/alexei-led/stress-ng:latest
+        args:
+          - "--cpu"
+          - "0"
+          - "--cpu-load"
+          - "100"
+          - "--timeout"
+          - "24h"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "4"
+            memory: "128Mi"
