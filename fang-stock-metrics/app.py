@@ -8,7 +8,7 @@ from prometheus_client import Gauge, start_http_server
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("fang-stock-metrics")
 
-TICKERS = ["META", "AMZN", "NFLX", "GOOGL"]
+TICKERS = ["META", "AMZN", "NFLX", "GOOGL" , "ORCL"]
 POLL_INTERVAL_SECONDS = int(os.environ.get("POLL_INTERVAL_SECONDS", "60"))
 METRICS_PORT = int(os.environ.get("METRICS_PORT", "8000"))
 FINNHUB_API_KEY = os.environ["FINNHUB_API_KEY"]
