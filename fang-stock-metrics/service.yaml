@@ -14,3 +14,7 @@ spec:
       targetPort: metrics
       nodePort: 30800
       name: metrics
+    - port: 8080
+      targetPort: admin
+      nodePort: 30801
+      name: admin

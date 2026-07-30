@@ -7,6 +7,10 @@ metadata:
     app: fang-stock-metrics
 spec:
   replicas: 1
+  # The ticker list lives on a ReadWriteOnce volume and is cached in memory, so the
+  # old pod must fully release it before the new one starts.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: fang-stock-metrics
@@ -24,14 +28,21 @@ spec:
           ports:
             - containerPort: 8000
               name: metrics
+            - containerPort: 8080
+              name: admin
           env:
             - name: POLL_INTERVAL_SECONDS
               value: "60"
+            - name: TICKERS_FILE
+              value: /data/tickers.json
             - name: FINNHUB_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: finnhub-credentials
                   key: api-key
+          volumeMounts:
+            - name: ticker-data
+              mountPath: /data
           resources:
             requests:
               cpu: "50m"
@@ -49,3 +60,7 @@ spec:
               path: /metrics
               port: metrics
             initialDelaySeconds: 15
+      volumes:
+        - name: ticker-data
+          persistentVolumeClaim:
+            claimName: fang-stock-metrics-data
