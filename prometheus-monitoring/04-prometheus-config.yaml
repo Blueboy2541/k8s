@@ -74,3 +74,12 @@ data:
           - source_labels: [__meta_kubernetes_endpoints_name]
             regex: fang-stock-metrics
             action: keep
+          # The Service also exposes the admin UI on 8080, which serves no /metrics.
+          # Without this, that port is discovered as a second, permanently failing target.
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            regex: metrics
+            action: keep
+          # Pin instance to a fixed value. Otherwise it defaults to the pod IP, so every
+          # pod restart starts a brand-new series and graphs show a break.
+          - target_label: instance
+            replacement: fang-stock-metrics

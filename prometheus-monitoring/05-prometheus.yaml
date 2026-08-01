@@ -1,3 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: monitoring
+  labels:
+    app: prometheus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,6 +21,10 @@ metadata:
     app: prometheus
 spec:
   replicas: 1
+  # The TSDB lives on a ReadWriteOnce volume, so the old pod has to release it
+  # before the new one can mount it.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: prometheus
@@ -16,12 +34,26 @@ spec:
         app: prometheus
     spec:
       serviceAccountName: prometheus
+      # prom/prometheus runs as nobody (65534). fsGroup makes the kubelet chown the
+      # mounted volume, without which Prometheus cannot write to /prometheus.
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
       containers:
         - name: prometheus
-          image: prom/prometheus:latest
+          # Pinned deliberately: the TSDB is now persistent, and an unattended major
+          # upgrade can migrate storage in ways that are not downgradable.
+          image: prom/prometheus:v3.13.2
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
+            # Keep a month of history, but never let the TSDB outgrow the volume -
+            # whichever limit is hit first wins.
+            - --storage.tsdb.retention.time=30d
+            - --storage.tsdb.retention.size=8GB
+            # Enables POST /-/reload so config changes no longer need a pod restart.
+            - --web.enable-lifecycle
           ports:
             - containerPort: 9090
               name: http
@@ -30,12 +62,23 @@ spec:
               mountPath: /etc/prometheus
             - name: storage
               mountPath: /prometheus
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
       volumes:
         - name: config
           configMap:
             name: prometheus-config
         - name: storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: prometheus-data
 ---
 apiVersion: v1
 kind: Service
