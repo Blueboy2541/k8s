@@ -1,3 +1,34 @@
+# Statically provisioned volume for the Prometheus TSDB.
+#
+# Before applying, on the node named in nodeAffinity below:
+#   sudo mkdir -p /var/lib/prometheus-data
+#   sudo chown 65534:65534 /var/lib/prometheus-data
+#
+# Pick a node with room for the full retention size (8GB) plus compaction headroom.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus-data-pv
+  labels:
+    app: prometheus
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  local:
+    path: /var/lib/prometheus-data
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - NODE_NAME
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -6,6 +37,7 @@ metadata:
   labels:
     app: prometheus
 spec:
+  storageClassName: manual
   accessModes:
     - ReadWriteOnce
   resources:
