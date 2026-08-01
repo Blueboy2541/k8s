@@ -21,9 +21,9 @@ spec:
     spec:
       containers:
         - name: fang-stock-metrics
-          # Built via kaniko-build-job.yaml, pushed to ttl.sh (anonymous, ephemeral registry).
-          # Tag expires 24h after each push - rerun the build job to refresh it.
-          image: ttl.sh/bardiyashojaei-fang-stock-metrics:24h
+          # Built and pushed by .github/workflows/fang-stock-metrics.yml on every push
+          # to main. Swap :latest for a sha-<commit> tag to pin a specific build.
+          image: ghcr.io/blueboy2541/fang-stock-metrics:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

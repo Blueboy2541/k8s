@@ -1,0 +1,4 @@
+# Local run artifacts - the real list lives on the PVC in-cluster.
+tickers.json
+tickers.json.tmp
+__pycache__/
