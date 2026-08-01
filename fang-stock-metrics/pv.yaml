@@ -1,0 +1,32 @@
+# Statically provisioned volume for the ticker list.
+#
+# Before applying, on the node named in nodeAffinity below:
+#   sudo mkdir -p /var/lib/fang-stock-metrics
+#
+# `local` (rather than hostPath) is used so the scheduler knows which node holds the
+# data and always places the pod there. With hostPath the pod could land on any node,
+# silently mount an empty directory, and reset the ticker list with no error.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: fang-stock-metrics-pv
+  labels:
+    app: fang-stock-metrics
+spec:
+  capacity:
+    storage: 64Mi
+  accessModes:
+    - ReadWriteOnce
+  # Retain: deleting the PVC does not wipe the directory on disk.
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  local:
+    path: /var/lib/fang-stock-metrics
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - node02
