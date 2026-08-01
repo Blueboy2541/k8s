@@ -6,6 +6,7 @@ metadata:
   labels:
     app: fang-stock-metrics
 spec:
+  storageClassName: manual
   accessModes:
     - ReadWriteOnce
   resources:

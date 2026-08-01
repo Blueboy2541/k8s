@@ -19,6 +19,8 @@ spec:
       labels:
         app: fang-stock-metrics
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
       containers:
         - name: fang-stock-metrics
           # Built and pushed by .github/workflows/fang-stock-metrics.yml on every push
