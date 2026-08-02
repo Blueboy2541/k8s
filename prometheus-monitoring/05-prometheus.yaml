@@ -22,22 +22,18 @@ spec:
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
-<<<<<<< Updated upstream
-            # Serve under /prometheus so the UI works behind the path-based ingress.
-            # Replace NODE_IP with the address you browse to.
-            # NOTE: this also moves direct NodePort access to :30090/prometheus.
-            - --web.external-url=http://NODE_IP/prometheus
-=======
-<<<<<<< Updated upstream
-=======
+            # Keep a month of history, but never let the TSDB outgrow its volume -
+            # whichever limit is hit first wins.
+            - --storage.tsdb.retention.time=30d
+            - --storage.tsdb.retention.size=8GB
+            # Enables POST /prometheus/-/reload so config changes need no restart.
+            - --web.enable-lifecycle
             # Serve under /prometheus so the UI works behind the path-based ingress.
             # route-prefix takes only the path, so no node address is baked in and any
             # node's IP works. (--web.external-url would also set this, but demands a
             # full URL and would hardcode one node.)
             # NOTE: this also moves direct NodePort access to :30090/prometheus.
             - --web.route-prefix=/prometheus
->>>>>>> Stashed changes
->>>>>>> Stashed changes
           ports:
             - containerPort: 9090
               name: http
