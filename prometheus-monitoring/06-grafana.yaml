@@ -39,11 +39,11 @@ spec:
             - name: GF_SECURITY_ADMIN_PASSWORD
               value: admin
             # Serve under /grafana for the path-based ingress. Both are required:
-            # root_url supplies the sub-path, serve_from_sub_path makes Grafana
-            # actually answer on it. The %(...)s placeholders are Grafana's own
-            # defaults, so no node address is hardcoded and any node's IP works.
+            # root_url supplies the sub-path, serve_from_sub_path makes Grafana answer
+            # on it. As with Prometheus above, only the PATH is used for browsing -
+            # the host is a placeholder, so no node address is hardcoded.
             - name: GF_SERVER_ROOT_URL
-              value: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+              value: "http://localhost:3000/grafana/"
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
           ports:

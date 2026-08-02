@@ -28,12 +28,14 @@ spec:
             - --storage.tsdb.retention.size=8GB
             # Enables POST /prometheus/-/reload so config changes need no restart.
             - --web.enable-lifecycle
-            # Serve under /prometheus so the UI works behind the path-based ingress.
-            # route-prefix takes only the path, so no node address is baked in and any
-            # node's IP works. (--web.external-url would also set this, but demands a
-            # full URL and would hardcode one node.)
+            # Serve under /prometheus for the path-based ingress. Only the PATH of this
+            # URL matters: it sets route-prefix and is what Prometheus prepends to the
+            # links and redirects it generates. The host is a placeholder that is never
+            # used for browsing, so no node address is hardcoded and any node's IP works.
+            # (--web.route-prefix alone is not enough - it makes Prometheus serve under
+            # the prefix but still redirect to unprefixed paths, which the ingress 404s.)
             # NOTE: this also moves direct NodePort access to :30090/prometheus.
-            - --web.route-prefix=/prometheus
+            - --web.external-url=http://localhost:9090/prometheus
           ports:
             - containerPort: 9090
               name: http
