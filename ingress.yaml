@@ -1,0 +1,63 @@
+# Path-based ingress for the homelab UIs.
+#
+#   http://<node-ip>/stocks      -> fang-stock-metrics portfolio UI
+#   http://<node-ip>/prometheus  -> Prometheus
+#   http://<node-ip>/grafana     -> Grafana
+#
+# Ingress objects are namespaced and can only reference Services in their own
+# namespace, so this needs one per namespace. They also carry different
+# annotations, which is the other reason they cannot be merged.
+---
+# fang-stock-metrics does NOT know it is behind a prefix. nginx strips /stocks and
+# passes the original prefix in X-Forwarded-Prefix, which ProxyFix in app.py reads
+# so url_for() keeps generating /stocks/... links. Keeping the app prefix-agnostic
+# this way means direct NodePort access on :30801 still works at the root path.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fang-stock-metrics
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/x-forwarded-prefix: /stocks
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # The capture groups feed $2 above: /stocks -> /, /stocks/add -> /add.
+          - path: /stocks(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: fang-stock-metrics
+                port:
+                  name: admin
+---
+# Prometheus and Grafana are both configured to serve from their sub-path directly
+# (--web.external-url and GF_SERVER_SERVE_FROM_SUB_PATH), so no rewrite here - the
+# path is passed through untouched and each app generates its own correct links.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monitoring
+  namespace: monitoring
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /prometheus
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  name: http
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  name: http
