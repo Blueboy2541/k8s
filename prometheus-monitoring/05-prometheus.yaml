@@ -22,6 +22,10 @@ spec:
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
+            # Serve under /prometheus so the UI works behind the path-based ingress.
+            # Replace NODE_IP with the address you browse to.
+            # NOTE: this also moves direct NodePort access to :30090/prometheus.
+            - --web.external-url=http://NODE_IP/prometheus
           ports:
             - containerPort: 9090
               name: http

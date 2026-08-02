@@ -12,6 +12,7 @@ from pathlib import Path
 import requests
 from flask import Flask, redirect, render_template_string, request, url_for
 from prometheus_client import Gauge, start_http_server
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("fang-stock-metrics")
@@ -397,6 +398,12 @@ def poll_once() -> None:
 
 
 admin = Flask(__name__)
+
+# Behind the ingress the app is mounted at /stocks, but nginx strips that prefix
+# before forwarding. ProxyFix reads the X-Forwarded-Prefix header the ingress sets
+# so url_for() still emits /stocks/add rather than /add. With no proxy in front
+# (direct NodePort access) the headers are absent and the app serves at / as normal.
+admin.wsgi_app = ProxyFix(admin.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 PAGE = """<!doctype html>
 <title>Portfolio</title>
