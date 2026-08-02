@@ -22,10 +22,22 @@ spec:
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
+<<<<<<< Updated upstream
             # Serve under /prometheus so the UI works behind the path-based ingress.
             # Replace NODE_IP with the address you browse to.
             # NOTE: this also moves direct NodePort access to :30090/prometheus.
             - --web.external-url=http://NODE_IP/prometheus
+=======
+<<<<<<< Updated upstream
+=======
+            # Serve under /prometheus so the UI works behind the path-based ingress.
+            # route-prefix takes only the path, so no node address is baked in and any
+            # node's IP works. (--web.external-url would also set this, but demands a
+            # full URL and would hardcode one node.)
+            # NOTE: this also moves direct NodePort access to :30090/prometheus.
+            - --web.route-prefix=/prometheus
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
           ports:
             - containerPort: 9090
               name: http
