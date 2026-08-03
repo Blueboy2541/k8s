@@ -556,3 +556,111 @@ groups and offsets at ~50Mi.
 - [ ] `kaniko-build-job.yaml` is now redundant.
 - [ ] Argo CD for actual CD (GitHub runners can't reach the homelab; deploys are manual).
 - [ ] Longhorn if node-pinning becomes annoying, or when the ML service needs RWX.
+
+---
+
+# Appendix — command reference
+
+Commands used during the session, grouped by area rather than chronologically.
+
+## Git
+
+| Command | Purpose |
+|---|---|
+| `git rev-parse --show-toplevel` | Find repo root |
+| `git remote -v` | Show remote URL |
+| `git branch --show-current` | Which branch am I on |
+| `git status --short` | Uncommitted changes |
+| `git log --oneline -5` | Recent commits |
+| `git log origin/main..main` | Unpushed commits |
+| `git ls-files <dir>` | What's tracked |
+| `git show main:<path>` | File content on a branch |
+| `git add … && git commit -m … && git push` | Publish changes |
+| `git checkout main && git merge <branch>` | Merge feature branch |
+| `git pull` | Fetch + merge |
+| `git stash` / `git stash pop` | Shelve local edits (caused the conflict markers) |
+| `git checkout -- <dir>` | Discard local edits |
+| `git fetch origin && git reset --hard origin/main` | Force local to match remote |
+
+## Python / local testing
+
+| Command | Purpose |
+|---|---|
+| `python3 -m py_compile app.py` | Syntax check only |
+| `python3 app.py` | Run locally |
+| `pip3 install --user flask` | Install dependency |
+| `python3 -c "import yaml; …"` | Validate manifests, inspect parsed fields |
+
+## Diagnostics via public APIs
+
+| Command | Purpose |
+|---|---|
+| `curl api.github.com/repos/<o>/<r>/actions/runs` | Workflow run status |
+| `curl .../actions/runs/<id>/jobs` | Per-step results |
+| `curl .../check-runs/<id>/annotations` | **Found the 403 error text** |
+| `curl pypi.org/pypi/<pkg>/json` | Verify pinned versions exist |
+| `curl hub.docker.com/v2/repositories/prom/prometheus/tags` | Resolve digest to a version tag |
+| `curl api.github.com/repos/kubernetes/ingress-nginx/releases` | Current controller version |
+| `curl api.github.com/repos/metallb/metallb/releases` | Current MetalLB version |
+
+## kubectl - inspection
+
+| Command | Purpose |
+|---|---|
+| `kubectl get nodes` | List nodes |
+| `kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints` | **Found the control-plane taint** |
+| `kubectl get pods -o wide` | Which node a pod runs on |
+| `kubectl get pv,pvc -A` | Storage binding status |
+| `kubectl get storageclass` | Is dynamic provisioning available |
+| `kubectl get ingress -A` | Ingress objects + ADDRESS |
+| `kubectl get ingressclass` | Controller class name |
+| `kubectl describe pvc <name>` | Why a claim will not bind |
+| `kubectl describe pod <name>` | Scheduling / mount failures |
+| `kubectl logs -n <ns> -l <selector> --tail=40` | Container logs |
+| `kubectl get deploy … -o jsonpath='{…containers[0].args}'` | Args actually running |
+| `kubectl get pod … -o jsonpath='{…imageID}'` | Real image digest |
+
+## kubectl - changes
+
+| Command | Purpose |
+|---|---|
+| `kubectl apply -f a.yaml -f b.yaml` | Declarative update |
+| `kubectl diff -f …` | Preview before applying |
+| `kubectl delete pvc <n>` / `delete pv <n>` | Recreate immutable objects |
+| `kubectl scale deployment/<n> --replicas=0` | Release a PVC finalizer |
+| `kubectl rollout restart deployment/<n>` | Force re-pull of `:latest` |
+| `kubectl rollout status deployment/<n>` | Wait for rollout |
+| `kubectl patch storageclass <n> -p '…is-default-class…'` | Set default StorageClass |
+| `kubectl create namespace ingress-nginx` | Namespace for the controller |
+| `kubectl exec -it … -- /bin/sh` | Shell into a container |
+| `kubectl debug -it <pod> --image=busybox --target=<c>` | Shell when the image has none |
+| `kubectl port-forward svc/<n> 8080:8080` | Tunnel via the API server |
+
+## Helm
+
+| Command | Purpose |
+|---|---|
+| `sudo snap install helm --classic` | Install Helm |
+| `helm template … > ingress-nginx.yaml` | Render chart to static YAML (keeps it in Git) |
+| `helm upgrade --install …` | Direct install (not used) |
+
+## Nodes and connectivity
+
+| Command | Purpose |
+|---|---|
+| `sudo mkdir -p /var/lib/prometheus-data` | `local` PVs need the directory to pre-exist |
+| `sudo chown 65534:65534 /var/lib/prometheus-data` | Prometheus runs as `nobody` |
+| `curl -sI http://<node>/stocks` | Ingress routing check |
+| `curl -sL -o /dev/null -w "%{http_code}  %{url_effective}"` | **Follow redirects - caught the dropped prefix** |
+| `curl -X POST http://<node>/prometheus/-/reload` | Reload config without a restart |
+| `ssh -f -N -L 8080:<node>:80 bastion` | Local port forward |
+| `ssh -f -N -D 1080 bastion` | SOCKS proxy |
+| `pkill -f "ssh -f -N"` | Close tunnels |
+
+## Two worth remembering
+
+- **`curl -sL … -w "%{url_effective}"`** exposed the redirect that silently dropped the
+  `/prometheus` prefix. A plain `curl -I` showed a misleading `405`, because HEAD is not
+  allowed - always follow redirects and print the final URL when debugging a proxy.
+- **The check-runs annotations endpoint** returned the real GitHub Actions failure text
+  without authentication, when `/logs` required a token and returned 403.
